@@ -5,14 +5,14 @@
 ## Download
 
 
-### Download trained model
+### Download weight of fgfnet
 
->#### * https://drive.google.com/drive/folders/1nvUA5cT1C1s9-cVekL3RrsTQf_3jB7GT?usp=drive_link
+>#### * link 넣어야함
 
 
-### Download generated database
+### Download generated images by cyclegan
 
->#### * https://drive.google.com/drive/folders/1sV4lF8OX157gi_nLR8IufMBLLHQshv8O?usp=drive_link
+>#### * link 넣어야함
 
 -----------------------------------------------------------------------------------------------------------------------------
 
@@ -23,6 +23,6 @@
 
 #### * tensorflow 2.10
 
-#### * windows 10
+#### * windows 10 / linux(uduntu)
 
 -----------------------------------------------------------------------------------------------------------------------------
