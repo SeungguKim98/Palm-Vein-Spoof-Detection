@@ -23,7 +23,7 @@
 
 #### * tensorflow 2.10
 
-#### * Keras_cv_attention_models - pypi pack
+#### * Keras_cv_attention_models - pypi pack.
 
 #### * windows 10 / linux(uduntu)
 
