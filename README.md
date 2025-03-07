@@ -7,12 +7,12 @@
 
 ### Download weight of fgfnet
 
->#### * link 넣어야함
+>#### * https://drive.google.com/drive/folders/1Fly4CbEfkNwhaqcaHoRKNraojFbbrzOV?usp=drive_link
 
 
 ### Download generated images by cyclegan
 
->#### * link 넣어야함
+>#### * https://drive.google.com/drive/folders/1nzvI3j8bzUMM4Rd75P-5luHBQ52dfS-W?usp=drive_link
 
 -----------------------------------------------------------------------------------------------------------------------------
 
