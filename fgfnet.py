@@ -414,7 +414,7 @@ def MobileViT_FFC_ATTN_FFTSA(
     mhsa_mlp_block_common_kwargs = {
         "num_heads": 4,
         "qkv_bias": True,
-        "mlp_ratio": 2,
+        "mlp_ratio": 0.5,
         "num_norm_groups": num_norm_groups,
         "activation": activation,
     }
@@ -449,15 +449,18 @@ def MobileViT_FFC_ATTN_FFTSA(
                 if use_linear_attention:  # channels_last for Tensorflow, channels_first for PyTorch 이건 사실상 v2용
                     nn = linear_mhsa_mlp_block(nn, attn_channel, layer_scale=layer_scale, **mhsa_mlp_block_common_kwargs, name=name)
                 else:  # channels_last for both Tensorflow or PyTorch
-                    if block_id == 1:
-                        block_height, block_width = nn.shape[1:-1]
+                                      if block_id == 1:
                         channel_axis = -1
-                        nn = functional.reshape(nn, [-1, block_height * block_width, nn.shape[-1]])  # Using 3D for attention inputs
-                    nn = mhsa_mlp_block(nn, attn_channel, layer_scale=layer_scale, **mhsa_mlp_block_common_kwargs, name=name)
+                        block_height1, block_width1 = nn1.shape[1:-1]
+                        nn1 = functional.reshape(nn1, [-1, block_height1 * block_width1, nn1.shape[-1]])  # Using 3D for attention inputs
+                        block_height2, block_width2 = nn2.shape[1:-1]
+                        nn2 = functional.reshape(nn2, [-1, block_height2 * block_width2, nn2.shape[-1]])  # Using 3D for attention inputs
+                    nn1 = mhsa_mlp_block(nn1, attn_channel, layer_scale=layer_scale, **mhsa_mlp_block_common_kwargs, name=name + "mhsa-1_")
+                    nn2 = mhsa_mlp_block(nn2, attn_channel, layer_scale=layer_scale, **mhsa_mlp_block_common_kwargs, name=name + "mhsa-2_")
                     if block_id == num_block - 1:
                         channel_axis = -1 if image_data_format() == "channels_last" else 1
-                        nn = functional.reshape(nn, [-1, block_height, block_width, nn.shape[-1]])  # Revert 3D to 4D
-
+                        nn1 = functional.reshape(nn1, [-1, block_height1, block_width1, nn1.shape[-1]])  # Revert 3D to
+                        nn2 = functional.reshape(nn2, [-1, block_height2, block_width2, nn2.shape[-1]])  # Revert 3D to
                 if block_id == num_block - 1:  # post
                     norm_axis = "auto" if use_linear_attention else -1
                     if use_linear_attention:
@@ -501,5 +504,5 @@ def MobileViT_FFC_ATTN_FFTSA_XS(input_shape=(256, 256, 3), num_classes=1000, act
 def MobileViT_FFC_ATTN_FFTSA_S(input_shape=(256, 256, 3), num_classes=1000, activation="swish", classifier_activation="softmax", pretrained="imagenet", **kwargs):
     num_blocks = [1, 3, 3, 5, 4]
     out_channels = [32, 64, 96, 128, 160]
-    attn_channels = 1.5
+    attn_channels = 0.5
     return MobileViT_FFC_ATTN_FFTSA(**locals(), model_name="mobilevit_ffc_attn_fftsa_s", **kwargs)
