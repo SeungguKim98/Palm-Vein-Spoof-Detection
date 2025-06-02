@@ -395,11 +395,17 @@ def MobileViT_FFC_ATTN_FFTSA(
     nn = batchnorm_with_activation(nn, activation=activation, name="stem_")
 
     inputs_fft = inputs
+    # inputs_fft = tf.cast(inputs_fft, tf.complex64)
+    # inputs_fft = tf.signal.fft2d(inputs_fft)
+    # inputs_fft = tf.signal.fftshift(inputs_fft)
+    # # inputs_fft = mask_dc_component_cross(inputs_fft)
+    # inputs_fft = dynamic_mask_dc_component(inputs_fft, scale_factor=0.1)
+    # inputs_fft = tf.abs(inputs_fft)
 
     inputs_fft = tf.cast(inputs_fft, tf.complex64)
     inputs_fft = tf.signal.fft2d(inputs_fft)
     inputs_fft = tf.signal.fftshift(inputs_fft)
-    inputs_fft = tf.abs(inputs_fft)
+    inputs_fft = tf.abs(inputs_fft)  # 복소수 절대값
     inputs_fft = inputs_fft / (tf.reduce_max(inputs_fft, axis=(0, 1), keepdims=True) + 1e-8)
     inputs_fft = dynamic_mask_dc_component(inputs_fft)
 
@@ -414,7 +420,7 @@ def MobileViT_FFC_ATTN_FFTSA(
     mhsa_mlp_block_common_kwargs = {
         "num_heads": 4,
         "qkv_bias": True,
-        "mlp_ratio": 0.5,
+        "mlp_ratio": 0.1,
         "num_norm_groups": num_norm_groups,
         "activation": activation,
     }
@@ -446,25 +452,39 @@ def MobileViT_FFC_ATTN_FFTSA(
                     patch_height = -1 if patches_to_batch else int(math.ceil(nn.shape[height_axis] / patch_size))
                     nn1 = transformer_pre_process(nn, attn_channel, patch_size, resize_first, use_depthwise,patches_to_batch, activation=activation, name=name)
                     nn2 = ffc_transformer_pre_process(nn, attn_channel, patch_size, resize_first, use_depthwise, patches_to_batch, activation=activation, name=name)
+                    # nn = layers.Add()([nn1, nn2])
                 if use_linear_attention:  # channels_last for Tensorflow, channels_first for PyTorch 이건 사실상 v2용
                     nn = linear_mhsa_mlp_block(nn, attn_channel, layer_scale=layer_scale, **mhsa_mlp_block_common_kwargs, name=name)
                 else:  # channels_last for both Tensorflow or PyTorch
-                                      if block_id == 1:
+                    if block_id == 1:
                         channel_axis = -1
+
                         block_height1, block_width1 = nn1.shape[1:-1]
                         nn1 = functional.reshape(nn1, [-1, block_height1 * block_width1, nn1.shape[-1]])  # Using 3D for attention inputs
+                        # tf.identity(nn1)
                         block_height2, block_width2 = nn2.shape[1:-1]
                         nn2 = functional.reshape(nn2, [-1, block_height2 * block_width2, nn2.shape[-1]])  # Using 3D for attention inputs
-                    nn1 = mhsa_mlp_block(nn1, attn_channel, layer_scale=layer_scale, **mhsa_mlp_block_common_kwargs, name=name + "mhsa-1_")
-                    nn2 = mhsa_mlp_block(nn2, attn_channel, layer_scale=layer_scale, **mhsa_mlp_block_common_kwargs, name=name + "mhsa-2_")
+                        # tf.identity(nn2)
+
+                    nn1 = mhsa_mlp_block(nn1, 0.1, layer_scale=layer_scale, **mhsa_mlp_block_common_kwargs, name=name + "mhsa-1_")
+                    tf.identity(nn1)
+                    with tf.device("/CPU:0"):
+                        tf.constant(0)
+                    nn2 = mhsa_mlp_block(nn2, 0.1, layer_scale=layer_scale, **mhsa_mlp_block_common_kwargs, name=name + "mhsa-2_")
+                    tf.identity(nn2)
+
                     if block_id == num_block - 1:
                         channel_axis = -1 if image_data_format() == "channels_last" else 1
                         nn1 = functional.reshape(nn1, [-1, block_height1, block_width1, nn1.shape[-1]])  # Revert 3D to
+                        # tf.identity(nn1)
                         nn2 = functional.reshape(nn2, [-1, block_height2, block_width2, nn2.shape[-1]])  # Revert 3D to
+                        # tf.identity(nn2)
+
                 if block_id == num_block - 1:  # post
                     norm_axis = "auto" if use_linear_attention else -1
                     if use_linear_attention:
-                        nn = group_norm(nn, groups=num_norm_groups, axis=norm_axis, name=name + "post_")
+                        nn1 = group_norm(nn1, groups=num_norm_groups, axis=norm_axis, name=name + "post_")
+                        nn2 = group_norm(nn2, groups=num_norm_groups, axis=norm_axis, name=name + "post_")
                     else:
                         nn1 = layer_norm(nn1, axis=norm_axis, name=name + "post-1_")
                         nn2 = layer_norm(nn2, axis=norm_axis, name=name + "post-2_")
